@@ -1,0 +1,50 @@
+#!/bin/bash
+
+echo "TS Banner Clock Builder - v1.0 by BK"
+
+inputfile="/home/berni/tsbanner/banner_"
+inputext=".jpg"
+ustime=$(date -d "-5 hours" +"%H:%M")
+domzeit=$(date -d "-4 hours" +"%H:%M")
+usfixtime=""
+uhrzeit=$(date -d "+2 hours" +"%H:%M")
+banfile=1
+outputPath="/webrickroot/"
+
+while :
+do
+    domzeit=$(date -d "-4 hours" +"%H:%M")
+    usfixtime=""
+    uhrzeit=$(date -d "+2 hours" +"%H:%M")
+
+    # Get server load percentage (modify this line based on how you get the load)
+    server_load=$(top -b -n 1 | awk '/^%Cpu/ {print 100 - $8}')
+    server_load_rounded=$(printf "%.0f" "$server_load")
+
+    # Set the color of the ellipse based on the server load
+    if (( $(echo "$server_load < 40" | bc -l) )); then
+        ellipse_color="green"
+    elif (( $(echo "$server_load < 70" | bc -l) )); then
+        ellipse_color="orange"
+    else
+        ellipse_color="red"
+    fi
+    #server_load_rounded=51
+
+    filename=$inputfile$banfile$inputext
+
+    # Create the circular ring with server load percentage
+    convert $filename -font Helvetica -pointsize 60 -draw "gravity south fill black text 0,82 '$uhrzeit' fill white text 1,81 '$uhrzeit'" \
+    -pointsize 35 -draw "gravity south fill black text 0,52 'DR $domzeit$usfixtime' fill white text 1,51 'DR $domzeit$usfixtime'" \
+    -geometry 85x85-10-0 -stroke black -strokewidth 10 -fill none -draw "ellipse 50,50 35,35 0,360" \
+    -stroke $ellipse_color -strokewidth 10 -fill none -draw "ellipse 50,50 35,35 0,$((server_load_rounded * 3))" \
+    -fill white -stroke black -strokewidth 1 -pointsize 40 -draw "gravity center text -300,-55 '$server_load_rounded'" \
+    -alpha set -background none -flatten /var/www/north-industries/banner_m.jpg
+
+    echo "file $filename success - Load: $server_load_rounded"
+    sleep 1m
+    let banfile=$banfile+1
+    if [ $banfile -eq 7 ]; then
+        banfile=1
+    fi
+done
